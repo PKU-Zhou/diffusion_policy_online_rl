@@ -33,6 +33,7 @@ htmlcov/
 
 # Experiment outputs
 logs/
+videos/
 output/
 multirun/
 runs/

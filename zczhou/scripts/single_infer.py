@@ -9,6 +9,7 @@ import pickle
 import re
 from pathlib import Path
 
+import imageio.v2 as imageio
 import numpy as np
 import jax
 import yaml
@@ -19,6 +20,7 @@ from relax.utils.fs import PROJECT_ROOT
 from relax.utils.persistence import PersistFunction
 
 DEFAULT_LOG_DIR = PROJECT_ROOT / "logs" / "HalfCheetah-v4" / "sdac_2026-09-01_05-18-24_s100_test_use_atp1"
+DEFAULT_VIDEO_DIR = PROJECT_ROOT / "videos"
 
 
 def latest_policy_path(log_dir: Path) -> Path:
@@ -55,29 +57,37 @@ def resolve_env_name(log_dir: Path, env: str | None) -> str:
         return yaml.safe_load(f)["env"]
 
 
-def make_env(name: str, seed: int, action_seed: int, render: bool):
-    if not render:
+def make_env(name: str, seed: int, action_seed: int, render_mode: str | None, camera: int | None):
+    if render_mode is None:
         return create_env(name, seed, action_seed)
-    env = make(name, render_mode="human")
+    kwargs = {"render_mode": render_mode}
+    if camera is not None:
+        kwargs["camera_id"] = camera
+    env = make(name, **kwargs)
     env.reset(seed=seed)
     env = RelaxWrapper(env, action_seed)
     return env, env.obs_dim, env.act_dim
 
 
-def rollout(env, policy_fn, policy_params, max_steps: int):
+def rollout(env, policy_fn, policy_params, max_steps: int, collect_frames: bool):
     obs, _ = env.reset()
     ep_len = 0
     ep_ret = 0.0
+    frames = []
+    if collect_frames:
+        frames.append(env.render())
     while True:
         act = np.asarray(policy_fn(policy_params, obs))
         obs, reward, terminated, truncated, _ = env.step(act)
         ep_len += 1
         ep_ret += float(reward)
+        if collect_frames:
+            frames.append(env.render())
         if terminated or truncated:
             break
         if max_steps > 0 and ep_len >= max_steps:
             break
-    return ep_len, ep_ret
+    return ep_len, ep_ret, frames
 
 
 if __name__ == "__main__":
@@ -87,7 +97,13 @@ if __name__ == "__main__":
     parser.add_argument("--env", type=str, default=None)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max_steps", type=int, default=0)
-    parser.add_argument("--render", action="store_true", default=False)
+    parser.add_argument("--video_dir", type=Path, default=DEFAULT_VIDEO_DIR)
+    parser.add_argument("--video_fps", type=int, default=0, help="0 表示取环境的 render_fps")
+    parser.add_argument("--camera", type=int, default=None)
+    # 一个环境只能有一个 render_mode，所以两者互斥
+    render_group = parser.add_mutually_exclusive_group()
+    render_group.add_argument("--render", action="store_true", default=False)
+    render_group.add_argument("--video", action="store_true", default=False)
     args = parser.parse_args()
 
     log_dir: Path = args.log_dir
@@ -99,7 +115,8 @@ if __name__ == "__main__":
 
     master_rng = np.random.default_rng(args.seed)
     env_seed, env_action_seed = map(int, master_rng.integers(0, 2**32 - 1, 2))
-    env, obs_dim, act_dim = make_env(env_name, env_seed, env_action_seed, args.render)
+    render_mode = "rgb_array" if args.video else ("human" if args.render else None)
+    env, obs_dim, act_dim = make_env(env_name, env_seed, env_action_seed, render_mode, args.camera)
 
     policy = PersistFunction.load(log_dir / "deterministic.pkl")
 
@@ -110,8 +127,16 @@ if __name__ == "__main__":
     with open(policy_path, "rb") as f:
         policy_params = pickle.load(f)
 
-    ep_len, ep_ret = rollout(env, policy_fn, policy_params, args.max_steps)
+    ep_len, ep_ret, frames = rollout(env, policy_fn, policy_params, args.max_steps, args.video)
+    fps = args.video_fps or env.metadata.get("render_fps", 30)
     env.close()
+
+    video_path = None
+    if args.video:
+        video_dir: Path = args.video_dir
+        video_dir.mkdir(parents=True, exist_ok=True)
+        video_path = video_dir / f"{env_name}_{policy_path.stem}_s{args.seed}.mp4"
+        imageio.mimsave(video_path, frames, fps=fps, macro_block_size=1)
 
     print("=" * 60)
     print(f"checkpoint : {policy_path}")
@@ -119,4 +144,7 @@ if __name__ == "__main__":
     print(f"seed       : {args.seed}")
     print(f"ep_len     : {ep_len}")
     print(f"ep_ret     : {ep_ret:.2f}")
+    if video_path is not None:
+        print(f"video      : {video_path}")
+        print(f"frames     : {len(frames)} @ {fps} fps")
     print("=" * 60)

@@ -7,6 +7,8 @@
 #   bash run_single_infer.sh --policy policy-500000-100000.pkl # 指定某个 checkpoint
 #   LOG_DIR=/path/to/run bash run_single_infer.sh              # 换实验目录
 #   DEVICE=gpu GPU=3 bash run_single_infer.sh                  # 用显卡
+#   VIDEO=1 bash run_single_infer.sh                           # 录制视频到 videos/
+#   VIDEO=1 bash run_single_infer.sh --max_steps 200           # 只录前 200 步
 #
 # 覆盖参数直接追加在命令行末尾即可，会透传给 single_infer.py。
 
@@ -25,9 +27,17 @@ GPU=${GPU:-3}
 MEM_FRACTION=${MEM_FRACTION:-.9}
 LOG_FILE=${LOG_FILE:-$ZCZHOU_DIR/logs/single_infer.log}
 
+VIDEO=${VIDEO:-0}
+
 INFER_ARGS=()
 if [ -n "${LOG_DIR:-}" ]; then
     INFER_ARGS+=(--log_dir "$LOG_DIR")
+fi
+if [ "$VIDEO" = "1" ]; then
+    INFER_ARGS+=(--video)
+fi
+if [ -n "${VIDEO_DIR:-}" ]; then
+    INFER_ARGS+=(--video_dir "$VIDEO_DIR")
 fi
 
 # 这一步是为了设置动态库路径
@@ -38,6 +48,9 @@ $PY_ENV_ROOT/lib/python3.11/site-packages/nvidia/nvjitlink/lib:\
 $PY_ENV_ROOT/lib/python3.11/site-packages/nvidia/cublas/lib:\
 $PY_ENV_ROOT/lib/python3.11/site-packages/nvidia/cudnn/lib:\
 $LD_LIBRARY_PATH
+
+# 服务器无显示设备，MuJoCo 必须走 EGL 离屏渲染才能出帧
+export MUJOCO_GL=${MUJOCO_GL:-egl}
 
 mkdir -p "$(dirname "$LOG_FILE")"
 
