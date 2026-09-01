@@ -1,7 +1,11 @@
 """单次推理：加载已训练好的权重，跑完整一个 episode。
 
-复用训练时导出的确定性策略计算图（deterministic.pkl）与某个 checkpoint 的
+默认复用训练时导出的确定性策略计算图（deterministic.pkl）与某个 checkpoint 的
 参数（policy-*.pkl），不需要重建网络，也不依赖训练超参。
+
+加 --quant 时改走源码重建的网络（deterministic.pkl 是固化 jaxpr，无法插桩），
+把 MLP 层换成 INT8 实现。两条路径已验证输出逐位一致，所以量化前后的差异
+可以干净归因到量化本身。
 """
 
 import argparse
@@ -18,6 +22,8 @@ from gymnasium import make
 from relax.env import RelaxWrapper, create_env
 from relax.utils.fs import PROJECT_ROOT
 from relax.utils.persistence import PersistFunction
+from zczhou.quant.int_infer import QuantConfig
+from zczhou.quant.int_infer.net import QUANT_TARGETS, build_net, make_policy_fn
 
 DEFAULT_LOG_DIR = PROJECT_ROOT / "logs" / "HalfCheetah-v4" / "sdac_2026-09-01_05-18-24_s100_test_use_atp1"
 DEFAULT_VIDEO_DIR = PROJECT_ROOT / "videos"
@@ -104,6 +110,30 @@ if __name__ == "__main__":
     render_group = parser.add_mutually_exclusive_group()
     render_group.add_argument("--render", action="store_true", default=False)
     render_group.add_argument("--video", action="store_true", default=False)
+    parser.add_argument("--quant", action="store_true", default=False,
+                        help="MLP 层走 INT8 推理（权重与激活都量化）")
+    parser.add_argument("--quant_mode", type=str, default="int", choices=("int", "fake"),
+                        help="int: int8xint8->int32 真整数累加；fake: 量化-反量化后走 FP32，用于排查")
+    parser.add_argument("--quant_target", type=str, default="both", choices=QUANT_TARGETS,
+                        help="量化哪一支网络，用于消融")
+    parser.add_argument("--weight_per_tensor", action="store_true", default=False,
+                        help="权重退回 per-tensor 量化（精度更差，用于对照）")
+    parser.add_argument("--act_symmetric", action="store_true", default=False,
+                        help="激活改用对称量化（mish 输出偏斜，默认非对称更好）")
+    parser.add_argument("--act_per_tensor", action="store_true", default=False,
+                        help="激活 scale 退回整张量共享（默认 per-token，精度显著更好）")
+    parser.add_argument("--act_group_size", type=int, default=8,
+                        help="激活分组量化的组大小，每组独立 scale；0 关闭。"
+                             "默认 8，实测与 --no_skip_first 组合下回报掉幅约 4%%")
+    parser.add_argument("--skip_first_layer", action="store_true", default=True,
+                        help="首层（直接吃未归一化 obs）保持 FP32，默认开启")
+    parser.add_argument("--no_skip_first_layer", dest="skip_first_layer",
+                        action="store_false",
+                        help="首层也量化（回报掉幅会明显变大，用于对照）")
+    parser.add_argument("--fp32_modules", type=str, default="",
+                        help="逗号分隔的模块名，这些层保持 FP32，如 q_net/linear_3")
+    parser.add_argument("--from_source", action="store_true", default=False,
+                        help="不量化但走源码重建路径，用于自证与固化图等价")
     args = parser.parse_args()
 
     log_dir: Path = args.log_dir
@@ -118,11 +148,33 @@ if __name__ == "__main__":
     render_mode = "rgb_array" if args.video else ("human" if args.render else None)
     env, obs_dim, act_dim = make_env(env_name, env_seed, env_action_seed, render_mode, args.camera)
 
-    policy = PersistFunction.load(log_dir / "deterministic.pkl")
+    quant_config = None
+    if args.quant:
+        quant_config = QuantConfig(
+            mode=args.quant_mode,
+            weight_per_channel=not args.weight_per_tensor,
+            act_symmetric=args.act_symmetric,
+            act_per_token=not args.act_per_tensor,
+            skip_first_layer=args.skip_first_layer,
+            fp32_modules=tuple(m for m in args.fp32_modules.split(",") if m),
+            act_group_size=args.act_group_size,
+        )
 
-    @jax.jit
-    def policy_fn(policy_params, obs):
-        return policy(policy_params, obs).clip(-1, 1)
+    if args.quant or args.from_source:
+        net = build_net(
+            log_dir,
+            obs_dim,
+            act_dim,
+            quant_config=quant_config,
+            quant_target=args.quant_target if args.quant else "none",
+        )
+        policy_fn = make_policy_fn(net)
+    else:
+        policy = PersistFunction.load(log_dir / "deterministic.pkl")
+
+        @jax.jit
+        def policy_fn(policy_params, obs):
+            return policy(policy_params, obs).clip(-1, 1)
 
     with open(policy_path, "rb") as f:
         policy_params = pickle.load(f)
@@ -142,6 +194,23 @@ if __name__ == "__main__":
     print(f"checkpoint : {policy_path}")
     print(f"env        : {env_name}  (obs_dim={obs_dim}, act_dim={act_dim})")
     print(f"seed       : {args.seed}")
+    if quant_config is not None:
+        weight_gran = "per-channel" if quant_config.weight_per_channel else "per-tensor"
+        act_gran = "symmetric" if quant_config.act_symmetric else "asymmetric"
+        if quant_config.use_grouped_act:
+            act_scope = f"group{quant_config.act_group_size}"
+        elif quant_config.act_per_token:
+            act_scope = "per-token"
+        else:
+            act_scope = "per-tensor"
+        print(f"quant      : mode={quant_config.mode} target={args.quant_target} "
+              f"w={quant_config.weight_bits}bit/{weight_gran} "
+              f"a={quant_config.act_bits}bit/{act_gran}/{act_scope}")
+        skipped = ["first-layer"] if quant_config.skip_first_layer else []
+        skipped += list(quant_config.fp32_modules)
+        print(f"fp32 keep  : {', '.join(skipped) if skipped else '(none)'}")
+    elif args.from_source:
+        print("quant      : off (from_source, FP32)")
     print(f"ep_len     : {ep_len}")
     print(f"ep_ret     : {ep_ret:.2f}")
     if video_path is not None:

@@ -12,6 +12,20 @@ Activation = Callable[[jax.Array], jax.Array]
 Identity: Activation = lambda x: x
 Tanh: Activation = lambda x: jnp.tanh(x)
 
+# 线性层工厂。默认 hk.Linear，外部（如量化推理）可以注册替代实现，
+# 这样 relax 不需要反向依赖调用方的模块。
+_LINEAR_FACTORY = hk.Linear
+
+
+def set_linear_factory(factory: Optional[Callable[..., hk.Module]] = None) -> None:
+    """注册线性层实现，传 None 恢复默认 hk.Linear。"""
+    global _LINEAR_FACTORY
+    _LINEAR_FACTORY = factory if factory is not None else hk.Linear
+
+
+def get_linear_factory() -> Callable[..., hk.Module]:
+    return _LINEAR_FACTORY
+
 
 @dataclass
 @fix_repr
@@ -190,17 +204,19 @@ class DACERPolicyNet(hk.Module):
     def __call__(self, obs: jax.Array, act: jax.Array, t: jax.Array) -> jax.Array:
         act_dim = act.shape[-1]
         te = scaled_sinusoidal_encoding(t, dim=self.time_dim, batch_shape=obs.shape[:-1])
-        te = hk.Linear(self.time_dim * 2)(te)
+        Linear = get_linear_factory()
+        te = Linear(self.time_dim * 2)(te)
         te = self.activation(te)
-        te = hk.Linear(self.time_dim)(te)
+        te = Linear(self.time_dim)(te)
         input = jnp.concatenate((obs, act, te), axis=-1)
         return mlp(self.hidden_sizes, act_dim, self.activation, self.output_activation)(input)
 
 def mlp(hidden_sizes: Sequence[int], output_size: int, activation: Activation, output_activation: Activation, *, squeeze_output: bool = False) -> Callable[[jax.Array], jax.Array]:
+    Linear = get_linear_factory()
     layers = []
     for hidden_size in hidden_sizes:
-        layers += [hk.Linear(hidden_size), activation]
-    layers += [hk.Linear(output_size), output_activation]
+        layers += [Linear(hidden_size), activation]
+    layers += [Linear(output_size), output_activation]
     if squeeze_output:
         layers.append(partial(jnp.squeeze, axis=-1))
     return hk.Sequential(layers)

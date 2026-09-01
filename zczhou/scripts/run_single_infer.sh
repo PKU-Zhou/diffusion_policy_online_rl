@@ -9,6 +9,10 @@
 #   DEVICE=gpu GPU=3 bash run_single_infer.sh                  # 用显卡
 #   VIDEO=1 bash run_single_infer.sh                           # 录制视频到 videos/
 #   VIDEO=1 bash run_single_infer.sh --max_steps 200           # 只录前 200 步
+#   QUANT=1 bash run_single_infer.sh                           # MLP 层 INT8 推理
+#   QUANT=1 QUANT_TARGET=policy bash run_single_infer.sh       # 只量化策略网
+#   QUANT=1 ACT_GROUP_SIZE=32 bash run_single_infer.sh         # 换激活分组大小
+#   QUANT=1 bash run_single_infer.sh --no_skip_first_layer     # 首层也量化（对照）
 #
 # 覆盖参数直接追加在命令行末尾即可，会透传给 single_infer.py。
 
@@ -28,6 +32,7 @@ MEM_FRACTION=${MEM_FRACTION:-.9}
 LOG_FILE=${LOG_FILE:-$ZCZHOU_DIR/logs/single_infer.log}
 
 VIDEO=${VIDEO:-0}
+QUANT=${QUANT:-0}
 
 INFER_ARGS=()
 if [ -n "${LOG_DIR:-}" ]; then
@@ -38,6 +43,15 @@ if [ "$VIDEO" = "1" ]; then
 fi
 if [ -n "${VIDEO_DIR:-}" ]; then
     INFER_ARGS+=(--video_dir "$VIDEO_DIR")
+fi
+if [ "$QUANT" = "1" ]; then
+    INFER_ARGS+=(--quant)
+fi
+if [ -n "${QUANT_TARGET:-}" ]; then
+    INFER_ARGS+=(--quant_target "$QUANT_TARGET")
+fi
+if [ -n "${ACT_GROUP_SIZE:-}" ]; then
+    INFER_ARGS+=(--act_group_size "$ACT_GROUP_SIZE")
 fi
 
 # 这一步是为了设置动态库路径
