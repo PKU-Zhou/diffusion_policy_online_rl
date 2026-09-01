@@ -1,0 +1,23 @@
+{
+  "alg": "sdac",
+  "env": "HalfCheetah-v4",
+  "suffix": "test_use_atp1",
+  "num_vec_envs": 5,
+  "hidden_num": 3,
+  "hidden_dim": 256,
+  "diffusion_steps": 20,
+  "diffusion_hidden_dim": 256,
+  "start_step": 30000,
+  "total_step": 1000000,
+  "lr": 3e-4,
+  "lr_schedule_end": 3e-5,
+  "alpha_lr": 7e-3,
+  "delay_alpha_update": 250,
+  "seed": 100,
+  "num_particles": 32,
+  "noise_scale": 0.1,
+  "beta_schedule_scale": 0.8,
+  "beta_schedule_type": "linear",
+  "cluster": false,
+  "debug": false
+}

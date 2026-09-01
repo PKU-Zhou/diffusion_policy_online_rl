@@ -3,14 +3,29 @@ import inspect
 import os
 import dill as pickle
 import re
-import types
 from typing import Callable, List
 import numpy as np
 import jax, jax.core, jaxlib.xla_client
 
+try:
+    from jax.extend.core import ClosedJaxpr, Jaxpr, Primitive
+except ImportError:
+    from jax.core import ClosedJaxpr, Jaxpr, Primitive
+
 PATTERN = re.compile(r"^jax")
 
 BLACKLIST = ["pure_callback", "io_callback", "debug_callback"]
+
+def _shape_struct_is_persistable(x: jax.ShapeDtypeStruct) -> bool:
+    """Reject sharded / named-axis structs; supports JAX with or without named_shape."""
+    if x.sharding is not None:
+        return False
+    if getattr(x, "named_shape", {}) != {}:
+        return False
+    vma = getattr(x, "vma", None)
+    if vma:
+        return False
+    return True
 
 def initialize_primitives(pattern: re.Pattern = PATTERN):
     import sys
@@ -19,7 +34,7 @@ def initialize_primitives(pattern: re.Pattern = PATTERN):
     for mod_name, mod in sys.modules.items():
         if pattern.match(mod_name):
             for name, obj in mod.__dict__.items():
-                if isinstance(obj, jax.core.Primitive):
+                if isinstance(obj, Primitive):
                     registry[obj.name] = obj
     return registry
 
@@ -36,8 +51,8 @@ def make_persist(f: Callable):
         closed_jaxpr, out_descr = jax.make_jaxpr(f, return_shape=True)(*args)
         out_descr_flat, out_tree = jax.tree_util.tree_flatten(out_descr)
 
-        assert all(x.named_shape == {} and x.sharding is None for x in in_descr_flat)
-        assert all(x.named_shape == {} and x.sharding is None for x in out_descr_flat)
+        assert all(_shape_struct_is_persistable(x) for x in in_descr_flat)
+        assert all(_shape_struct_is_persistable(x) for x in out_descr_flat)
 
         if sig is not None:
             # def f(a, /, b, *args, c, **kwargs): ...
@@ -66,7 +81,7 @@ def make_persist(f: Callable):
 class PersistFunction:
     def __init__(
         self,
-        closed_jaxpr: jax.core.ClosedJaxpr,
+        closed_jaxpr: ClosedJaxpr,
         in_tree: jax.tree_util.PyTreeDef,
         in_descr_flat: List[jax.ShapeDtypeStruct],
         out_tree: jax.tree_util.PyTreeDef,
@@ -80,7 +95,7 @@ class PersistFunction:
         self.out_descr_flat = out_descr_flat
         self.arg_names = arg_names
 
-        jaxpr: jax.core.Jaxpr = closed_jaxpr.jaxpr
+        jaxpr: Jaxpr = closed_jaxpr.jaxpr
         assert not jaxpr.effects
         # Consider add
         # assert jaxpr.debug_info is None, breakpoint()
@@ -144,14 +159,16 @@ class PersistFunction:
 
 class PersistFunctionPickler(pickle.Pickler):
     def persistent_id(self, obj):
-        if isinstance(obj, jax.core.Primitive):
+        if isinstance(obj, Primitive):
             if obj.name in BLACKLIST:
                 raise pickle.PickleError(f"Cannot pickle {obj.name}")
             return f"P:{obj.name}"
         elif isinstance(obj, jaxlib.xla_client.Traceback):
             return "T"
-        elif isinstance(obj, types.FunctionType) and "<locals>" in obj.__qualname__:
-            return "C"
+        # Do not assign persistent_id to nested/local functions: loading them as None
+        # breaks REDUCE (TypeError: the first argument must be callable). Dill can
+        # serialize typical JAX closure helpers; omitting them was only safe when
+        # nothing in the graph still referenced those callables.
         return None
 
 class PersistFunctionUnpickler(pickle.Unpickler):
@@ -162,8 +179,14 @@ class PersistFunctionUnpickler(pickle.Unpickler):
     def persistent_load(self, pid):
         if not isinstance(pid, str):
             raise pickle.UnpicklingError(f"Invalid persistent id {pid}")
-        if pid == "T" or pid == "C":
+        if pid == "T":
             return None
+        if pid == "C":
+            raise pickle.UnpicklingError(
+                "This checkpoint was saved with an older persistence format that "
+                "dropped nested functions; re-export deterministic.pkl with the "
+                "current code (save_policy_structure / save_q_structure)."
+            )
         elif pid.startswith("P:"):
             name = pid[2:]
             if name not in self.registry:
