@@ -56,6 +56,8 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action='store_true', default=False)
     parser.add_argument("--beta_schedule_scale", type=float, default=0.8)
     parser.add_argument("--beta_schedule_type", type=str, default='linear')
+    parser.add_argument("--enable_profiling", action='store_true', default=False, help='Enable performance profiling')
+    parser.add_argument("--profiling_output", type=str, default=None, help='Path to save profiling results (default: log_path/profiling_results.json)')
     args = parser.parse_args()
 
     if args.debug:
@@ -164,6 +166,12 @@ if __name__ == "__main__":
         PROJECT_ROOT = Path('/n/netscratch/nali_lab_seas/Lab/haitongma/sdac_logs')
     
     exp_dir = PROJECT_ROOT / "logs" / args.env / (args.alg + '_' + time.strftime("%Y-%m-%d_%H-%M-%S") + f'_s{args.seed}_{args.suffix}')
+    
+    # Set profiling output path if profiling is enabled
+    profiling_output = None
+    if args.enable_profiling and args.profiling_output:
+        profiling_output = Path(args.profiling_output)
+    
     trainer = OffPolicyTrainer(
         env=env,
         algorithm=algorithm,
@@ -176,6 +184,8 @@ if __name__ == "__main__":
         warmup_with="random",
         log_path=exp_dir,
         update_log_n_step=1 if args.debug else 1000,
+        enable_profiling=args.enable_profiling,
+        profiling_output=profiling_output,
     )
 
     trainer.setup(Experience.create_example(obs_dim, act_dim, trainer.batch_size))
@@ -185,4 +195,10 @@ if __name__ == "__main__":
     args_dict = vars(args)
     with open(os.path.join(exp_dir, 'config.yaml'), 'w') as yaml_file:
         yaml.dump(args_dict, yaml_file)
+    
+    # Run training
     trainer.run(train_key)
+    
+    # Export profiling results if enabled
+    if args.enable_profiling:
+        trainer.export_profiling_results()
