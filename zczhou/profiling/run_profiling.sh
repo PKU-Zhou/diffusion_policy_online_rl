@@ -89,11 +89,11 @@ if [ $EXIT_CODE -eq 0 ]; then
     echo "========================================"
     echo "✓ 训练完成"
     echo "========================================"
-    echo "Profiling结果已保存到: $PROFILING_OUTPUT"
     echo "日志已保存到: $LOG_FILE"
-    
+
     # 显示性能摘要（如果结果文件存在）
     if [ -f "$PROFILING_OUTPUT" ]; then
+        echo "Profiling结果已保存到: $PROFILING_OUTPUT"
         echo ""
         echo "性能摘要:"
         python -c "
@@ -104,6 +104,10 @@ with open('$PROFILING_OUTPUT') as f:
     for name, stats in data.get('summary', {}).items():
         print(f'  {name:30s}: {stats[\"total_duration\"]:10.2f}s (avg: {stats[\"average_duration\"]:8.4f}s, count: {stats[\"count\"]})')
 " 2>/dev/null || echo "无法解析profiling结果"
+    else
+        echo ""
+        echo "⚠ 警告: 未找到profiling结果文件 ($PROFILING_OUTPUT)"
+        echo "  请检查训练日志确认profiling是否正常启用"
     fi
 else
     echo ""

@@ -18,16 +18,18 @@ from relax.env.vector import VectorEnv
 from relax.trainer.accumulator import SampleLog, VectorSampleLog, UpdateLog, Interval
 from relax.utils.experience import Experience
 
-# Import profiling utilities
+# Import profiling utilities.
+# Loaded by absolute file path so that it works regardless of the current
+# working directory from which the training script is launched.
 try:
-    import os
-    import inspect
-    current_file = inspect.getfile(inspect.currentframe())
-    project_root = Path(current_file).parent.parent.parent
-    profiling_utils_path = project_root / 'zczhou' / 'profiling' / 'utils'
-    if profiling_utils_path.exists():
-        sys.path.insert(0, str(profiling_utils_path.parent.parent))
-        from zczhou.profiling.utils.timer import Timer, TimerRegistry
+    import importlib.util
+
+    _timer_module_path = Path(__file__).resolve().parents[2] / "zczhou" / "profiling" / "utils" / "timer.py"
+    if _timer_module_path.exists():
+        _timer_spec = importlib.util.spec_from_file_location("relax_profiling_timer", _timer_module_path)
+        _timer_module = importlib.util.module_from_spec(_timer_spec)
+        _timer_spec.loader.exec_module(_timer_module)
+        Timer, TimerRegistry = _timer_module.Timer, _timer_module.TimerRegistry
         PROFILING_AVAILABLE = True
     else:
         PROFILING_AVAILABLE = False
