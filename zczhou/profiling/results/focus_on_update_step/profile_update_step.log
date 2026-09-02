@@ -1,0 +1,78 @@
+E0902 09:52:09.690155 1109506 xtile_compiler.cc:399] Fusion: gemm_fusion_dot_general.46 = f32[16384,256]{1,0} fusion(add_any.9, linear_4____w__.1), kind=kCustom, calls=gemm_fusion_dot_general.46_computation.clone, backend_config={"operation_queue_id":"0","wait_on_operation_queues":[],"fusion_backend_config":{"kind":"__triton_nested_gemm_fusion","block_level_fusion_config":{"num_warps":"4","output_tiles":[{"sizes":["128","128"]}],"num_ctas":1,"num_stages":4,"is_tma_allowed":true,"is_warp_specialization_allowed":false}},"force_earliest_schedule":false,"reification_cost":[],"device_type":"DEVICE_TYPE_INVALID"}
+E0902 09:52:09.690384 1109506 xtile_compiler.cc:401] Computation: gemm_fusion_dot_general.46_computation.clone {
+  parameter_0.12 = f32[16384,256]{1,0} parameter(0)
+  parameter_1.12 = f32[256,256]{1,0} parameter(1)
+  ROOT dot_general.11 = f32[16384,256]{1,0} dot(parameter_0.12, parameter_1.12), lhs_contracting_dims={1}, rhs_contracting_dims={1}, backend_config={"sizes":["32"]}
+}
+E0902 09:52:09.976469 1109485 xtile_compiler.cc:399] Fusion: gemm_fusion_dot_general.40 = f32[16384,256]{1,0} fusion(mul.85, linear_3____w__.3), kind=kCustom, calls=gemm_fusion_dot_general.40_computation.clone, backend_config={"operation_queue_id":"0","wait_on_operation_queues":[],"fusion_backend_config":{"kind":"__triton_nested_gemm_fusion","block_level_fusion_config":{"num_warps":"4","output_tiles":[{"sizes":["128","128"]}],"num_ctas":1,"num_stages":4,"is_tma_allowed":true,"is_warp_specialization_allowed":false}},"force_earliest_schedule":false,"reification_cost":[],"device_type":"DEVICE_TYPE_INVALID"}
+E0902 09:52:09.976623 1109485 xtile_compiler.cc:401] Computation: gemm_fusion_dot_general.40_computation.clone {
+  parameter_0.3 = f32[16384,256]{1,0} parameter(0)
+  parameter_1.3 = f32[256,256]{1,0} parameter(1)
+  ROOT dot_general.3 = f32[16384,256]{1,0} dot(parameter_0.3, parameter_1.3), lhs_contracting_dims={1}, rhs_contracting_dims={0}, backend_config={"sizes":["32"]}
+}
+E0902 09:52:19.292475 1109489 xtile_compiler.cc:399] Fusion: gemm_fusion_dot.53 = f32[24832,256]{1,0} fusion(mul.308, mul.832, bitcast.125, linear_1____w__.12), kind=kCustom, calls=gemm_fusion_dot.53_computation.clone, backend_config={"operation_queue_id":"0","wait_on_operation_queues":[],"fusion_backend_config":{"kind":"__triton_nested_gemm_fusion","block_level_fusion_config":{"num_warps":"4","output_tiles":[{"sizes":["128","128"]}],"num_ctas":1,"num_stages":4,"is_tma_allowed":true,"is_warp_specialization_allowed":false}},"force_earliest_schedule":false,"reification_cost":[],"device_type":"DEVICE_TYPE_INVALID"}
+E0902 09:52:19.292624 1109489 xtile_compiler.cc:401] Computation: gemm_fusion_dot.53_computation.clone {
+  parameter_0.18 = f32[256,256]{1,0} parameter(0)
+  parameter_1.18 = f32[16384,256]{1,0} parameter(1)
+  parameter_2.2 = f32[8192,256]{1,0} parameter(2)
+  concatenate.87 = f32[24832,256]{1,0} concatenate(parameter_0.18, parameter_1.18, parameter_2.2), dimensions={0}
+  parameter_3.1 = f32[256,256]{1,0} parameter(3)
+  ROOT dot.79 = f32[24832,256]{1,0} dot(concatenate.87, parameter_3.1), lhs_contracting_dims={1}, rhs_contracting_dims={0}, backend_config={"sizes":["32"]}
+}
+E0902 09:52:19.340344 1109523 xtile_compiler.cc:399] Fusion: gemm_fusion_dot.53 = f32[24832,256]{1,0} fusion(mul.308, mul.832, bitcast.125, linear_1____w__.12), kind=kCustom, calls=gemm_fusion_dot.53_computation.clone, backend_config={"operation_queue_id":"0","wait_on_operation_queues":[],"fusion_backend_config":{"kind":"__triton_nested_gemm_fusion","block_level_fusion_config":{"num_warps":"4","output_tiles":[{"sizes":["64","64"]}],"num_ctas":1,"num_stages":3,"is_tma_allowed":false,"is_warp_specialization_allowed":false}},"force_earliest_schedule":false,"reification_cost":[],"device_type":"DEVICE_TYPE_INVALID"}
+E0902 09:52:19.340465 1109523 xtile_compiler.cc:401] Computation: gemm_fusion_dot.53_computation.clone {
+  parameter_0.18 = f32[256,256]{1,0} parameter(0)
+  parameter_1.18 = f32[16384,256]{1,0} parameter(1)
+  parameter_2.2 = f32[8192,256]{1,0} parameter(2)
+  concatenate.87 = f32[24832,256]{1,0} concatenate(parameter_0.18, parameter_1.18, parameter_2.2), dimensions={0}
+  parameter_3.1 = f32[256,256]{1,0} parameter(3)
+  ROOT dot.79 = f32[24832,256]{1,0} dot(concatenate.87, parameter_3.1), lhs_contracting_dims={1}, rhs_contracting_dims={0}, backend_config={"sizes":["64"]}
+}
+==============================================================================
+SDAC update 阶段延迟细分微基准
+==============================================================================
+JAX 后端 : gpu
+设备     : [CudaDevice(id=0)]
+batch    : 256, 去噪步数: 20, 粒子数: 32, MC倍数: 64
+计时次数 : 200
+
+QNet(hidden_sizes=[256, 256, 256], activation=<function mish at 0x7ff813d66a20>, output_activation=<function <lambda> at 0x7ff78784b1a0>, name='q_net')
+QNet(hidden_sizes=[256, 256, 256], activation=<function mish at 0x7ff813d66a20>, output_activation=<function <lambda> at 0x7ff78784b1a0>, name='q_net')
+DACERPolicyNet(hidden_sizes=[256, 256, 256], activation=<function mish at 0x7ff813d66a20>, output_activation=<function <lambda> at 0x7ff787876480>, time_dim=16, name='dacer_policy_net')
+[0] 参考基线
+  baseline_dispatch_overhead            0.1320 ms/次   (编译   0.04s, 200 次)
+
+[1] 目标动作采样 get_action(next_obs)  —— sdac.py:113
+  stage1_next_action_get_action         4.3067 ms/次   (编译   3.91s, 200 次)
+  stage1a_p_sample_32particles          3.9286 ms/次   (编译   1.29s, 200 次)
+  stage1b_p_sample_1particle            0.7770 ms/次   (编译   1.62s, 200 次)
+  stage1c_particle_q_select             0.4471 ms/次   (编译   0.63s, 200 次)
+
+[2] 目标 Q 计算  —— sdac.py:114-117
+  stage2_target_q_backup                0.1502 ms/次   (编译   0.59s, 200 次)
+
+[3] Critic 前向+反向 x2  —— sdac.py:119-125
+  stage3_critic_value_and_grad          0.3428 ms/次   (编译   1.43s, 200 次)
+
+[4] 当前动作采样 get_action(obs)  —— sdac.py:130
+  stage4_new_action_get_action          4.2819 ms/次   (编译   0.00s, 200 次)
+
+[5] q_sample 单步加噪 + 64倍MC扩展  —— sdac.py:131-144
+  stage5_q_sample_and_mc_expand         0.0906 ms/次   (编译   0.68s, 200 次)
+
+[6] Policy 前向+反向 (有效batch=16384)  —— sdac.py:146-170
+  stage6_policy_value_and_grad          5.4780 ms/次   (编译   3.97s, 200 次)
+  stage6a_policy_forward_only           1.1440 ms/次   (编译   1.01s, 200 次)
+  stage6b_wide_q_forward_only           0.7588 ms/次   (编译   0.39s, 200 次)
+  stage6c_wide_denoiser_forward_only    0.4584 ms/次   (编译   0.41s, 200 次)
+
+[7] 优化器更新 + 目标网络软更新  —— sdac.py:172-216
+  stage7_param_updates_step0_all        1.1677 ms/次   (编译   0.77s, 200 次)
+  stage7_param_updates_step1_criticonly    1.2233 ms/次   (编译   0.00s, 200 次)
+
+[8] 对照：完整融合的 update
+  fused_stateless_update_step0         14.5496 ms/次   (编译   8.89s, 200 次)
+  fused_stateless_update_step1         14.6401 ms/次   (编译   0.01s, 200 次)
+  api_algorithm_update_with_host_sync   15.9464 ms/次   (编译   0.02s, 200 次)
+
+结果已写入: /data/home/zch_zhou28/workspace/work2026/DPRL_V2/diffusion_policy_online_rl/zczhou/profiling/results/focus_on_update_step/profile_update_step_20260902_095236.json

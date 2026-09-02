@@ -1,0 +1,397 @@
+{
+  "summary": {
+    "baseline_dispatch_overhead__compile": {
+      "total_duration": 0.04384654527530074,
+      "count": 1,
+      "average_duration": 0.04384654527530074
+    },
+    "baseline_dispatch_overhead": {
+      "total_duration": 0.02639759611338377,
+      "count": 200,
+      "average_duration": 0.00013198798056691886
+    },
+    "stage1_next_action_get_action__compile": {
+      "total_duration": 3.9105482888408005,
+      "count": 1,
+      "average_duration": 3.9105482888408005
+    },
+    "stage1_next_action_get_action": {
+      "total_duration": 0.8613371276296675,
+      "count": 200,
+      "average_duration": 0.004306685638148337
+    },
+    "stage1a_p_sample_32particles__compile": {
+      "total_duration": 1.2876677005551755,
+      "count": 1,
+      "average_duration": 1.2876677005551755
+    },
+    "stage1a_p_sample_32particles": {
+      "total_duration": 0.7857200838625431,
+      "count": 200,
+      "average_duration": 0.003928600419312716
+    },
+    "stage1b_p_sample_1particle__compile": {
+      "total_duration": 1.624478014651686,
+      "count": 1,
+      "average_duration": 1.624478014651686
+    },
+    "stage1b_p_sample_1particle": {
+      "total_duration": 0.1554097388871014,
+      "count": 200,
+      "average_duration": 0.0007770486944355071
+    },
+    "stage1c_particle_q_select__compile": {
+      "total_duration": 0.6297298660501838,
+      "count": 1,
+      "average_duration": 0.6297298660501838
+    },
+    "stage1c_particle_q_select": {
+      "total_duration": 0.08941772161051631,
+      "count": 200,
+      "average_duration": 0.00044708860805258154
+    },
+    "stage2_target_q_backup__compile": {
+      "total_duration": 0.5902361450716853,
+      "count": 1,
+      "average_duration": 0.5902361450716853
+    },
+    "stage2_target_q_backup": {
+      "total_duration": 0.030039630830287933,
+      "count": 200,
+      "average_duration": 0.00015019815415143967
+    },
+    "stage3_critic_value_and_grad__compile": {
+      "total_duration": 1.426634260918945,
+      "count": 1,
+      "average_duration": 1.426634260918945
+    },
+    "stage3_critic_value_and_grad": {
+      "total_duration": 0.0685640531592071,
+      "count": 200,
+      "average_duration": 0.00034282026579603555
+    },
+    "stage4_new_action_get_action__compile": {
+      "total_duration": 0.004498496185988188,
+      "count": 1,
+      "average_duration": 0.004498496185988188
+    },
+    "stage4_new_action_get_action": {
+      "total_duration": 0.856371614150703,
+      "count": 200,
+      "average_duration": 0.0042818580707535145
+    },
+    "stage5_q_sample_and_mc_expand__compile": {
+      "total_duration": 0.6832549460232258,
+      "count": 1,
+      "average_duration": 0.6832549460232258
+    },
+    "stage5_q_sample_and_mc_expand": {
+      "total_duration": 0.018124251160770655,
+      "count": 200,
+      "average_duration": 9.062125580385328e-05
+    },
+    "stage6_policy_value_and_grad__compile": {
+      "total_duration": 3.9733193670399487,
+      "count": 1,
+      "average_duration": 3.9733193670399487
+    },
+    "stage6_policy_value_and_grad": {
+      "total_duration": 1.0956068499945104,
+      "count": 200,
+      "average_duration": 0.005478034249972552
+    },
+    "stage6a_policy_forward_only__compile": {
+      "total_duration": 1.0050858431495726,
+      "count": 1,
+      "average_duration": 1.0050858431495726
+    },
+    "stage6a_policy_forward_only": {
+      "total_duration": 0.22880853014066815,
+      "count": 200,
+      "average_duration": 0.0011440426507033407
+    },
+    "stage6b_wide_q_forward_only__compile": {
+      "total_duration": 0.38771474873647094,
+      "count": 1,
+      "average_duration": 0.38771474873647094
+    },
+    "stage6b_wide_q_forward_only": {
+      "total_duration": 0.1517575429752469,
+      "count": 200,
+      "average_duration": 0.0007587877148762345
+    },
+    "stage6c_wide_denoiser_forward_only__compile": {
+      "total_duration": 0.40680235298350453,
+      "count": 1,
+      "average_duration": 0.40680235298350453
+    },
+    "stage6c_wide_denoiser_forward_only": {
+      "total_duration": 0.09167902823537588,
+      "count": 200,
+      "average_duration": 0.0004583951411768794
+    },
+    "stage7_param_updates_step0_all__compile": {
+      "total_duration": 0.774316415656358,
+      "count": 1,
+      "average_duration": 0.774316415656358
+    },
+    "stage7_param_updates_step0_all": {
+      "total_duration": 0.2335464614443481,
+      "count": 200,
+      "average_duration": 0.0011677323072217406
+    },
+    "stage7_param_updates_step1_criticonly__compile": {
+      "total_duration": 0.0010630139149725437,
+      "count": 1,
+      "average_duration": 0.0010630139149725437
+    },
+    "stage7_param_updates_step1_criticonly": {
+      "total_duration": 0.24466547928750515,
+      "count": 200,
+      "average_duration": 0.0012233273964375258
+    },
+    "fused_stateless_update_step0__compile": {
+      "total_duration": 8.889711974188685,
+      "count": 1,
+      "average_duration": 8.889711974188685
+    },
+    "fused_stateless_update_step0": {
+      "total_duration": 2.909921884536743,
+      "count": 200,
+      "average_duration": 0.014549609422683716
+    },
+    "fused_stateless_update_step1__compile": {
+      "total_duration": 0.014636469073593616,
+      "count": 1,
+      "average_duration": 0.014636469073593616
+    },
+    "fused_stateless_update_step1": {
+      "total_duration": 2.9280161429196596,
+      "count": 200,
+      "average_duration": 0.014640080714598299
+    },
+    "api_algorithm_update_with_host_sync__compile": {
+      "total_duration": 0.01710769208148122,
+      "count": 1,
+      "average_duration": 0.01710769208148122
+    },
+    "api_algorithm_update_with_host_sync": {
+      "total_duration": 3.1892719040624797,
+      "count": 200,
+      "average_duration": 0.015946359520312398
+    }
+  },
+  "hierarchy": {
+    "baseline_dispatch_overhead__compile": {
+      "total_duration": 0.04384654527530074,
+      "count": 1,
+      "children": {}
+    },
+    "baseline_dispatch_overhead": {
+      "total_duration": 0.02639759611338377,
+      "count": 200,
+      "children": {}
+    },
+    "stage1_next_action_get_action__compile": {
+      "total_duration": 3.9105482888408005,
+      "count": 1,
+      "children": {}
+    },
+    "stage1_next_action_get_action": {
+      "total_duration": 0.8613371276296675,
+      "count": 200,
+      "children": {}
+    },
+    "stage1a_p_sample_32particles__compile": {
+      "total_duration": 1.2876677005551755,
+      "count": 1,
+      "children": {}
+    },
+    "stage1a_p_sample_32particles": {
+      "total_duration": 0.7857200838625431,
+      "count": 200,
+      "children": {}
+    },
+    "stage1b_p_sample_1particle__compile": {
+      "total_duration": 1.624478014651686,
+      "count": 1,
+      "children": {}
+    },
+    "stage1b_p_sample_1particle": {
+      "total_duration": 0.1554097388871014,
+      "count": 200,
+      "children": {}
+    },
+    "stage1c_particle_q_select__compile": {
+      "total_duration": 0.6297298660501838,
+      "count": 1,
+      "children": {}
+    },
+    "stage1c_particle_q_select": {
+      "total_duration": 0.08941772161051631,
+      "count": 200,
+      "children": {}
+    },
+    "stage2_target_q_backup__compile": {
+      "total_duration": 0.5902361450716853,
+      "count": 1,
+      "children": {}
+    },
+    "stage2_target_q_backup": {
+      "total_duration": 0.030039630830287933,
+      "count": 200,
+      "children": {}
+    },
+    "stage3_critic_value_and_grad__compile": {
+      "total_duration": 1.426634260918945,
+      "count": 1,
+      "children": {}
+    },
+    "stage3_critic_value_and_grad": {
+      "total_duration": 0.0685640531592071,
+      "count": 200,
+      "children": {}
+    },
+    "stage4_new_action_get_action__compile": {
+      "total_duration": 0.004498496185988188,
+      "count": 1,
+      "children": {}
+    },
+    "stage4_new_action_get_action": {
+      "total_duration": 0.856371614150703,
+      "count": 200,
+      "children": {}
+    },
+    "stage5_q_sample_and_mc_expand__compile": {
+      "total_duration": 0.6832549460232258,
+      "count": 1,
+      "children": {}
+    },
+    "stage5_q_sample_and_mc_expand": {
+      "total_duration": 0.018124251160770655,
+      "count": 200,
+      "children": {}
+    },
+    "stage6_policy_value_and_grad__compile": {
+      "total_duration": 3.9733193670399487,
+      "count": 1,
+      "children": {}
+    },
+    "stage6_policy_value_and_grad": {
+      "total_duration": 1.0956068499945104,
+      "count": 200,
+      "children": {}
+    },
+    "stage6a_policy_forward_only__compile": {
+      "total_duration": 1.0050858431495726,
+      "count": 1,
+      "children": {}
+    },
+    "stage6a_policy_forward_only": {
+      "total_duration": 0.22880853014066815,
+      "count": 200,
+      "children": {}
+    },
+    "stage6b_wide_q_forward_only__compile": {
+      "total_duration": 0.38771474873647094,
+      "count": 1,
+      "children": {}
+    },
+    "stage6b_wide_q_forward_only": {
+      "total_duration": 0.1517575429752469,
+      "count": 200,
+      "children": {}
+    },
+    "stage6c_wide_denoiser_forward_only__compile": {
+      "total_duration": 0.40680235298350453,
+      "count": 1,
+      "children": {}
+    },
+    "stage6c_wide_denoiser_forward_only": {
+      "total_duration": 0.09167902823537588,
+      "count": 200,
+      "children": {}
+    },
+    "stage7_param_updates_step0_all__compile": {
+      "total_duration": 0.774316415656358,
+      "count": 1,
+      "children": {}
+    },
+    "stage7_param_updates_step0_all": {
+      "total_duration": 0.2335464614443481,
+      "count": 200,
+      "children": {}
+    },
+    "stage7_param_updates_step1_criticonly__compile": {
+      "total_duration": 0.0010630139149725437,
+      "count": 1,
+      "children": {}
+    },
+    "stage7_param_updates_step1_criticonly": {
+      "total_duration": 0.24466547928750515,
+      "count": 200,
+      "children": {}
+    },
+    "fused_stateless_update_step0__compile": {
+      "total_duration": 8.889711974188685,
+      "count": 1,
+      "children": {}
+    },
+    "fused_stateless_update_step0": {
+      "total_duration": 2.909921884536743,
+      "count": 200,
+      "children": {}
+    },
+    "fused_stateless_update_step1__compile": {
+      "total_duration": 0.014636469073593616,
+      "count": 1,
+      "children": {}
+    },
+    "fused_stateless_update_step1": {
+      "total_duration": 2.9280161429196596,
+      "count": 200,
+      "children": {}
+    },
+    "api_algorithm_update_with_host_sync__compile": {
+      "total_duration": 0.01710769208148122,
+      "count": 1,
+      "children": {}
+    },
+    "api_algorithm_update_with_host_sync": {
+      "total_duration": 3.1892719040624797,
+      "count": 200,
+      "children": {}
+    }
+  },
+  "metadata": {
+    "timestamp": "20260902_095236",
+    "config": {
+      "env": "HalfCheetah-v4",
+      "obs_dim": 17,
+      "act_dim": 6,
+      "batch_size": 256,
+      "hidden_num": 3,
+      "hidden_dim": 256,
+      "diffusion_steps": 20,
+      "diffusion_hidden_dim": 256,
+      "lr": 0.0003,
+      "lr_schedule_end": 3e-05,
+      "alpha_lr": 0.007,
+      "delay_alpha_update": 250,
+      "num_particles": 32,
+      "noise_scale": 0.1,
+      "beta_schedule_scale": 0.8,
+      "beta_schedule_type": "linear",
+      "seed": 100,
+      "reverse_mc_num": 64
+    },
+    "num_iters": 200,
+    "jax_backend": "gpu",
+    "jax_version": "0.9.2",
+    "devices": [
+      "cuda:0"
+    ],
+    "python_version": "3.11.15",
+    "note": "各 stage* 为独立 jit 编译的镜像子步骤；fused_* 为真实的整体融合 update；api_* 为 trainer 实际调用路径（含 float() 主机同步）。<name>__compile 记录首次调用的编译耗时，不属于稳态延迟。"
+  }
+}
