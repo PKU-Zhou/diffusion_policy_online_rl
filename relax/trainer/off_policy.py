@@ -211,8 +211,16 @@ class OffPolicyTrainer:
         
         sl = self.sample_log
 
+        # np.asarray in get_action forces device sync, so wall time here is accurate
         action = self.algorithm.get_action(sample_key, obs)
+        if self.enable_profiling:
+            t_infer = time.perf_counter()
+            self.timer_registry.record('sample_policy_inference', t_infer - start_time, parent='sample_step')
+        
         next_obs, reward, terminated, truncated, info = self.env.step(action)
+        if self.enable_profiling:
+            t_env = time.perf_counter()
+            self.timer_registry.record('sample_env_step', t_env - t_infer, parent='sample_step')
 
         experience = Experience.create(obs, action, reward, terminated, truncated, next_obs, info)
         if self.is_vec:
@@ -335,7 +343,11 @@ class OffPolicyTrainer:
     
     def _finish_impl(self):
         self.env.close()
+        if self.enable_profiling:
+            t0 = time.perf_counter()
         self.algorithm.save(self.log_path / "state.pkl")
+        if self.enable_profiling:
+            self.timer_registry.record('finish_save_state', time.perf_counter() - t0, parent='finish_total')
         if self.hparams is not None and len(self.last_metrics) > 0:
             exp, ssi, sei = hparams(self.hparams, self.last_metrics)
             self.logger.file_writer.add_summary(exp)
@@ -344,7 +356,11 @@ class OffPolicyTrainer:
         self.logger.close()
         self.progress.close()
         self.evaluator.stdin.close()
+        if self.enable_profiling:
+            t1 = time.perf_counter()
         self.evaluator.wait()
+        if self.enable_profiling:
+            self.timer_registry.record('finish_wait_evaluator', time.perf_counter() - t1, parent='finish_total')
     
     def export_profiling_results(self, filepath: Optional[str] = None):
         """导出性能分析结果"""
