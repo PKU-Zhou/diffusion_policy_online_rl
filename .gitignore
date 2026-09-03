@@ -40,6 +40,8 @@ runs/
 wandb/
 events.out.tfevents.*
 *.png
+# 数据分布统计结果图需要保留
+!zczhou/data_distribution/**/*.png
 
 # Checkpoints & data
 *.pkl
