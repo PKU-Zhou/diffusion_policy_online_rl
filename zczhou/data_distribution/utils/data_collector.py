@@ -22,7 +22,9 @@ class DataCollector:
         output_dir: Path,
         sample_interval: int = 1000,
         layer_patterns: Optional[List[str]] = None,
-        save_batch_size: int = 10
+        save_batch_size: int = 10,
+        activation_max_samples: int = 2048,
+        collect_types: Optional[List[str]] = None,
     ):
         """初始化数据收集器
         
@@ -32,6 +34,9 @@ class DataCollector:
             layer_patterns: 要采样的层名称模式，如 ['linear_0', 'linear_1']
                           如果为None，则收集所有层
             save_batch_size: 累积多少次采样后保存一次到磁盘
+            activation_max_samples: 每层激活值最多保留的元素数（展平后截断）
+            collect_types: 要收集的数据类型列表，如 ['weight', 'gradient', 'activation']
+                          如果为None，则收集全部类型
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -39,13 +44,27 @@ class DataCollector:
         self.sample_interval = sample_interval
         self.layer_patterns = layer_patterns or []
         self.save_batch_size = save_batch_size
+        self.activation_max_samples = activation_max_samples
+        self.collect_types = set(collect_types) if collect_types else {'weight', 'gradient', 'activation'}
         
         # 数据缓存
         self.weight_cache = []  # [(step, network_name, layer_name, data), ...]
         self.gradient_cache = []  # [(step, network_name, layer_name, data), ...]
+        self.activation_cache = []  # [(step, network_name, layer_name, data), ...]
         
         # 计数器
         self.samples_since_save = 0
+        
+    def should_collect_type(self, data_type: str) -> bool:
+        """判断是否需要收集指定类型的数据
+        
+        Args:
+            data_type: 数据类型（'weight', 'gradient', 'activation'）
+            
+        Returns:
+            是否需要收集
+        """
+        return data_type in self.collect_types
         
     def should_collect(self, step: int) -> bool:
         """判断当前步数是否需要收集数据
@@ -145,6 +164,33 @@ class DataCollector:
                 'data': data.flatten()  # 展平为一维数组
             })
     
+    def collect_activations(self, activations: Dict[str, Any], network_name: str, step: int = 0):
+        """收集网络激活值
+        
+        Args:
+            activations: 层名称到激活值数组的映射，如 {'linear_1': array(batch, 256)}
+                        层名称可以是带模块前缀的路径（如 'dacer_policy_net/linear_1'）
+            network_name: 网络名称（如 'policy', 'q1', 'q2'）
+            step: 当前训练步数
+        """
+        for layer_path, data in activations.items():
+            # 统一层名处理：支持 'linear_1' 或 'dacer_policy_net/linear_1/w' 形式
+            # 拦截器给出的是模块名（如 'linear_1'），直接匹配
+            if not self._match_layer(layer_path):
+                continue
+            
+            arr = np.asarray(data).flatten()
+            # 截断以控制体积
+            if len(arr) > self.activation_max_samples:
+                arr = arr[:self.activation_max_samples]
+            
+            self.activation_cache.append({
+                'step': step,
+                'network': network_name,
+                'layer': layer_path,
+                'data': arr
+            })
+    
     def save_batch(self, step: int):
         """将累积的数据保存到磁盘
         
@@ -191,10 +237,25 @@ class DataCollector:
             np.savez_compressed(gradient_file, **data_dict)
             print(f"已保存 {len(self.gradient_cache)} 个梯度样本到 {gradient_file}")
             self.gradient_cache.clear()
+        
+        # 保存激活数据
+        if self.activation_cache:
+            activation_file = self.output_dir / f"activations_{timestamp}.npz"
+            data_dict = {}
+            for i, item in enumerate(self.activation_cache):
+                prefix = f"item_{i}"
+                data_dict[f"{prefix}_step"] = item['step']
+                data_dict[f"{prefix}_network"] = item['network']
+                data_dict[f"{prefix}_layer"] = item['layer']
+                data_dict[f"{prefix}_data"] = item['data']
+            
+            np.savez_compressed(activation_file, **data_dict)
+            print(f"已保存 {len(self.activation_cache)} 个激活样本到 {activation_file}")
+            self.activation_cache.clear()
     
     def finalize(self):
         """训练结束时保存剩余数据"""
-        if self.weight_cache or self.gradient_cache:
+        if self.weight_cache or self.gradient_cache or self.activation_cache:
             print("保存剩余数据...")
             self._flush_to_disk()
             print("数据收集完成")

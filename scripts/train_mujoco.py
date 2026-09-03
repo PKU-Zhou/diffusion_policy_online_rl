@@ -65,7 +65,8 @@ if __name__ == "__main__":
     parser.add_argument("--profiling_output", type=str, default=None, help='Path to save profiling results (default: log_path/profiling_results.json)')
     parser.add_argument("--enable_data_collection", action='store_true', default=False, help='Enable data distribution collection during training')
     parser.add_argument("--data_collection_interval", type=int, default=1000, help='Interval (in steps) for data collection')
-    parser.add_argument("--data_collection_layers", type=str, default="linear_0,linear_1,linear_2", help='Comma-separated layer names to collect data from')
+    parser.add_argument("--data_collection_layers", type=str, default="linear_0,linear_1,linear_2,linear_3,linear_4,linear_5", help='Comma-separated layer names to collect data from')
+    parser.add_argument("--data_collection_types", type=str, default="weight,gradient,activation", help='Comma-separated data types to collect (weight,gradient,activation)')
     parser.add_argument("--disable_evaluator", action='store_true', default=False, help='Disable the evaluator subprocess during training')
     args = parser.parse_args()
 
@@ -106,8 +107,10 @@ if __name__ == "__main__":
         # 日志路径会在后面创建，这里先预留
         # 数据收集器会在算法创建后、trainer创建时被使用
         layer_patterns = args.data_collection_layers.split(',')
+        collect_types = [t.strip() for t in args.data_collection_types.split(',') if t.strip()]
         print(f"数据收集已启用，采样间隔：{args.data_collection_interval} 步")
         print(f"收集层：{layer_patterns}")
+        print(f"收集类型：{collect_types}")
 
     if args.alg == 'sdac':
         def mish(x: jax.Array):
@@ -126,7 +129,8 @@ if __name__ == "__main__":
                 output_dir=temp_output_dir,
                 sample_interval=args.data_collection_interval,
                 layer_patterns=layer_patterns,
-                save_batch_size=1
+                save_batch_size=1,
+                collect_types=collect_types
             )
         
         algorithm = SDAC(agent, params, lr=args.lr, alpha_lr=args.alpha_lr, 

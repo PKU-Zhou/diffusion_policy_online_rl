@@ -247,6 +247,10 @@ class SDAC(Algorithm):
                 "running_q_mean": new_running_mean,
                 "running_q_std": new_running_std,
                 "entropy_approx": 0.5 * self.agent.act_dim * jnp.log( 2 * jnp.pi * jnp.exp(1) * (0.1 * jnp.exp(log_alpha)) ** 2),
+                # 梯度数据（pytree），供JIT外数据收集器使用，update返回前会被弹出
+                "grad_q1": q1_grads,
+                "grad_q2": q2_grads,
+                "grad_policy": policy_grads,
             }
             return state, info
 
@@ -259,18 +263,75 @@ class SDAC(Algorithm):
         """重写update方法以支持数据收集"""
         self.state, info = self._update(key, self.state, data)
         
+        # 弹出梯度数据（pytree，不能被float转换，也不应进入训练日志）
+        grad_q1 = info.pop("grad_q1", None)
+        grad_q2 = info.pop("grad_q2", None)
+        grad_policy = info.pop("grad_policy", None)
+        
         # 数据收集（在JIT外部进行）
         if self.data_collector and self.data_collector.should_collect(int(self.state.step)):
+            step = int(self.state.step)
+            
             # 收集权重
-            self.data_collector.collect_weights(self.state.params.q1, "q1", int(self.state.step))
-            self.data_collector.collect_weights(self.state.params.q2, "q2", int(self.state.step))
-            self.data_collector.collect_weights(self.state.params.policy, "policy", int(self.state.step))
+            if self.data_collector.should_collect_type('weight'):
+                self.data_collector.collect_weights(self.state.params.q1, "q1", step)
+                self.data_collector.collect_weights(self.state.params.q2, "q2", step)
+                self.data_collector.collect_weights(self.state.params.policy, "policy", step)
+            
+            # 收集梯度
+            if self.data_collector.should_collect_type('gradient'):
+                if grad_q1 is not None:
+                    self.data_collector.collect_gradients(grad_q1, "q1", step)
+                if grad_q2 is not None:
+                    self.data_collector.collect_gradients(grad_q2, "q2", step)
+                if grad_policy is not None:
+                    self.data_collector.collect_gradients(grad_policy, "policy", step)
+            
+            # 收集激活值
+            if self.data_collector.should_collect_type('activation'):
+                self._collect_activations(data, step)
             
             # 保存批次
-            self.data_collector.save_batch(int(self.state.step))
+            self.data_collector.save_batch(step)
         
         return {k: float(v) for k, v in info.items() if not k.startswith('hist')}, \
                {k: v for k, v in info.items() if k.startswith('hist')}
+
+    def _collect_activations(self, data: Experience, step: int):
+        """通过带拦截器的单独前向收集激活值（JIT外部，不影响训练）
+        
+        对当前batch的obs/action各跑一次前向：
+        - Q网络：q(obs, action)
+        - Policy网络：policy(obs, action, t=0)，t取0与训练中随机t的意义一致（采样一个代表性时间步）
+        
+        Args:
+            data: 当前batch的经验数据
+            step: 当前训练步数
+        """
+        obs, action = data.obs, data.action
+        store = {}
+        
+        def interceptor(next_f, args, kwargs, context):
+            out = next_f(*args, **kwargs)
+            if isinstance(context.module, hk.Linear):
+                # context.module.name 如 'linear_3'
+                store[context.module.name] = out
+            return out
+        
+        # Q网络激活（q1与q2结构相同，取q1即可代表Q网络结构；分别收集以对比分布）
+        if self.data_collector.should_collect_type('activation'):
+            for net_name, params in (("q1", self.state.params.q1), ("q2", self.state.params.q2)):
+                store.clear()
+                with hk.intercept_methods(interceptor):
+                    self.agent.q(params, obs, action)
+                self.data_collector.collect_activations(store, net_name, step)
+            
+            # Policy网络激活
+            store.clear()
+            t = jnp.zeros((obs.shape[0],), dtype=jnp.int32)
+            with hk.intercept_methods(interceptor):
+                self.agent.policy(self.state.params.policy, obs, action, t)
+            self.data_collector.collect_activations(store, "policy", step)
 
     def get_policy_params(self):
         return (self.state.params.policy, self.state.params.log_alpha, self.state.params.q1, self.state.params.q2 )

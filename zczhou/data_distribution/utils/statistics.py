@@ -90,49 +90,40 @@ def load_collected_data(data_dir: Path) -> Dict[str, List[Dict]]:
         data_dir: 数据目录
         
     Returns:
-        数据字典 {'weights': [...], 'gradients': [...]}
+        数据字典 {'weights': [...], 'gradients': [...], 'activations': [...]}
     """
     data_dir = Path(data_dir)
     
-    weights_data = []
-    gradients_data = []
-    
-    # 加载权重文件
-    for weight_file in sorted(data_dir.glob('weights_*.npz')):
-        data = np.load(weight_file, allow_pickle=True)
-        
-        # 解析文件中的所有item
-        i = 0
-        while f'item_{i}_step' in data:
-            item = {
-                'step': int(data[f'item_{i}_step']),
-                'network': str(data[f'item_{i}_network']),
-                'layer': str(data[f'item_{i}_layer']),
-                'data': data[f'item_{i}_data']
-            }
-            weights_data.append(item)
-            i += 1
-    
-    # 加载梯度文件
-    for grad_file in sorted(data_dir.glob('gradients_*.npz')):
-        data = np.load(grad_file, allow_pickle=True)
-        
-        # 解析文件中的所有item
-        i = 0
-        while f'item_{i}_step' in data:
-            item = {
-                'step': int(data[f'item_{i}_step']),
-                'network': str(data[f'item_{i}_network']),
-                'layer': str(data[f'item_{i}_layer']),
-                'data': data[f'item_{i}_data']
-            }
-            gradients_data.append(item)
-            i += 1
-    
-    return {
-        'weights': weights_data,
-        'gradients': gradients_data
+    result = {
+        'weights': [],
+        'gradients': [],
+        'activations': [],
     }
+    
+    # 统一加载三类文件：weights_*.npz / gradients_*.npz / activations_*.npz
+    file_specs = [
+        ('weights', 'weights_*.npz'),
+        ('gradients', 'gradients_*.npz'),
+        ('activations', 'activations_*.npz'),
+    ]
+    
+    for key, pattern in file_specs:
+        for data_file in sorted(data_dir.glob(pattern)):
+            data = np.load(data_file, allow_pickle=True)
+            
+            # 解析文件中的所有item
+            i = 0
+            while f'item_{i}_step' in data:
+                item = {
+                    'step': int(data[f'item_{i}_step']),
+                    'network': str(data[f'item_{i}_network']),
+                    'layer': str(data[f'item_{i}_layer']),
+                    'data': data[f'item_{i}_data']
+                }
+                result[key].append(item)
+                i += 1
+    
+    return result
 
 
 def group_data_by_network_layer(data_list: List[Dict]) -> Dict[str, Dict[str, List[Dict]]]:
