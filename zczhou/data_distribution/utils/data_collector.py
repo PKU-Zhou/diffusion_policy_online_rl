@@ -58,11 +58,11 @@ class DataCollector:
         """
         return step % self.sample_interval == 0
     
-    def _match_layer(self, layer_name: str) -> bool:
+    def _match_layer(self, layer_path: str) -> bool:
         """判断层名称是否匹配过滤模式
         
         Args:
-            layer_name: 层名称
+            layer_path: 层路径（不含 w/b 后缀），如 'q_net/linear_1'
             
         Returns:
             是否匹配
@@ -70,8 +70,17 @@ class DataCollector:
         if not self.layer_patterns:
             return True
         
+        # 取路径最后一段作为层名
+        base = layer_path.split('/')[-1]
+        
         for pattern in self.layer_patterns:
-            if pattern in layer_name:
+            pattern = pattern.strip()
+            if not pattern:
+                continue
+            if pattern == base:
+                return True
+            # Haiku 首层不带下标：linear_0 匹配首层 linear
+            if pattern.endswith('_0') and pattern[:-2] == base:
                 return True
         return False
     
@@ -92,8 +101,9 @@ class DataCollector:
                     new_prefix = f"{prefix}/{key}" if prefix else key
                     extract_recursive(value, new_prefix)
             elif isinstance(d, (jnp.ndarray, np.ndarray)):
-                # 这是一个参数数组
-                if self._match_layer(prefix):
+                # prefix 形如 'q_net/linear_1/w'，去掉最后的 w/b 得到层路径
+                layer_path = '/'.join(prefix.split('/')[:-1])
+                if self._match_layer(layer_path):
                     result[prefix] = np.array(d)  # 转换为numpy数组
         
         extract_recursive(params)

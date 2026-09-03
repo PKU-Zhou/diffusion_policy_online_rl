@@ -62,6 +62,7 @@ class OffPolicyTrainer:
         warmup_with: str = "random",  # "policy" or "random"
         enable_profiling: bool = False,
         profiling_output: Optional[Path] = None,
+        disable_evaluator: bool = False,
     ):
         self.env = env
         self.algorithm = algorithm
@@ -83,6 +84,7 @@ class OffPolicyTrainer:
         self.hparams = hparams
         self.warmup_with = warmup_with
         self.save_value = save_value
+        self.disable_evaluator = disable_evaluator
         
         # Initialize profiling
         self.enable_profiling = enable_profiling and PROFILING_AVAILABLE
@@ -145,7 +147,9 @@ class OffPolicyTrainer:
             if self.save_value:
                 self.algorithm.save_q_structure(self.log_path, dummy_obs=dummy_data.obs[0], dummy_action=dummy_data.action[0])
         
-        if self.enable_profiling:
+        if self.disable_evaluator:
+            self.evaluator = None
+        elif self.enable_profiling:
             with Timer('evaluator_init', self.timer_registry):
                 self.evaluator = subprocess.Popen(
                     [
@@ -307,8 +311,9 @@ class OffPolicyTrainer:
                     self.timer_registry.record('save_policy', save_duration, parent='training_loop')
                     eval_start = time.perf_counter()
 
-                command = f"{sl.sample_step},{self.log_path / policy_pkl_name}\n"
-                self.evaluator.stdin.write(command.encode())
+                if self.evaluator is not None:
+                    command = f"{sl.sample_step},{self.log_path / policy_pkl_name}\n"
+                    self.evaluator.stdin.write(command.encode())
                 
                 if self.enable_profiling:
                     eval_duration = time.perf_counter() - eval_start
@@ -355,12 +360,13 @@ class OffPolicyTrainer:
             self.logger.file_writer.add_summary(sei)
         self.logger.close()
         self.progress.close()
-        self.evaluator.stdin.close()
-        if self.enable_profiling:
-            t1 = time.perf_counter()
-        self.evaluator.wait()
-        if self.enable_profiling:
-            self.timer_registry.record('finish_wait_evaluator', time.perf_counter() - t1, parent='finish_total')
+        if self.evaluator is not None:
+            self.evaluator.stdin.close()
+            if self.enable_profiling:
+                t1 = time.perf_counter()
+            self.evaluator.wait()
+            if self.enable_profiling:
+                self.timer_registry.record('finish_wait_evaluator', time.perf_counter() - t1, parent='finish_total')
     
     def export_profiling_results(self, filepath: Optional[str] = None):
         """导出性能分析结果"""

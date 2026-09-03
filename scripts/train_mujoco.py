@@ -4,6 +4,11 @@ from pathlib import Path
 import time
 from functools import partial
 import yaml
+import sys
+
+# 添加项目根目录到Python路径
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 import jax, jax.numpy as jnp
 
@@ -61,6 +66,7 @@ if __name__ == "__main__":
     parser.add_argument("--enable_data_collection", action='store_true', default=False, help='Enable data distribution collection during training')
     parser.add_argument("--data_collection_interval", type=int, default=1000, help='Interval (in steps) for data collection')
     parser.add_argument("--data_collection_layers", type=str, default="linear_0,linear_1,linear_2", help='Comma-separated layer names to collect data from')
+    parser.add_argument("--disable_evaluator", action='store_true', default=False, help='Disable the evaluator subprocess during training')
     args = parser.parse_args()
 
     if args.debug:
@@ -120,7 +126,7 @@ if __name__ == "__main__":
                 output_dir=temp_output_dir,
                 sample_interval=args.data_collection_interval,
                 layer_patterns=layer_patterns,
-                save_batch_size=10
+                save_batch_size=1
             )
         
         algorithm = SDAC(agent, params, lr=args.lr, alpha_lr=args.alpha_lr, 
@@ -223,6 +229,7 @@ if __name__ == "__main__":
         update_log_n_step=1 if args.debug else 1000,
         enable_profiling=args.enable_profiling,
         profiling_output=profiling_output,
+        disable_evaluator=args.disable_evaluator,
     )
 
     trainer.setup(Experience.create_example(obs_dim, act_dim, trainer.batch_size))

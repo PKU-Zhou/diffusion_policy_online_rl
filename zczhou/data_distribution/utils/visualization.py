@@ -1,33 +1,25 @@
-"""可视化工具
+"""Visualization utilities.
 
-绘制数据分布的直方图和演化图。
+Plot histograms and evolution charts of data distributions.
+All chart text is in English to avoid missing CJK font issues.
 """
 
 from pathlib import Path
 from typing import Dict, List
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')  # 使用非交互式后端
+matplotlib.use('Agg')  # non-interactive backend
 import matplotlib.pyplot as plt
 
 
 def setup_matplotlib_chinese():
-    """配置matplotlib支持中文显示"""
-    # 尝试多个中文字体
-    chinese_fonts = ['SimHei', 'STHeiti', 'Microsoft YaHei', 'WenQuanYi Micro Hei']
-    
-    for font in chinese_fonts:
-        try:
-            plt.rcParams['font.sans-serif'] = [font, 'DejaVu Sans']
-            plt.rcParams['axes.unicode_minus'] = False
-            break
-        except:
-            continue
-    
-    # 如果都不可用，使用默认字体
-    if 'font.sans-serif' not in plt.rcParams:
-        plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
-        plt.rcParams['axes.unicode_minus'] = False
+    """Configure matplotlib with an English-safe default font.
+
+    Kept for backward compatibility: charts now use English labels,
+    so no CJK font is required.
+    """
+    plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
+    plt.rcParams['axes.unicode_minus'] = False
 
 
 def plot_single_histogram(
@@ -35,41 +27,39 @@ def plot_single_histogram(
     title: str,
     save_path: Path,
     bins: int = 50,
-    xlabel: str = '数值',
-    ylabel: str = '频数'
+    xlabel: str = 'Value',
+    ylabel: str = 'Frequency'
 ):
-    """绘制单个数据分布的直方图
-    
+    """Plot a histogram of a single data distribution.
+
     Args:
-        data: 一维NumPy数组
-        title: 图表标题
-        save_path: 保存路径
-        bins: 直方图的bin数量
-        xlabel: x轴标签
-        ylabel: y轴标签
+        data: 1-D NumPy array
+        title: chart title
+        save_path: path to save the figure
+        bins: number of histogram bins
+        xlabel: x-axis label
+        ylabel: y-axis label
     """
     save_path = Path(save_path)
     save_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     fig, ax = plt.subplots(figsize=(10, 6))
-    
-    # 绘制直方图
+
     ax.hist(data, bins=bins, alpha=0.7, edgecolor='black')
     ax.set_xlabel(xlabel, fontsize=12)
     ax.set_ylabel(ylabel, fontsize=12)
     ax.set_title(title, fontsize=14, fontweight='bold')
     ax.grid(True, alpha=0.3)
-    
-    # 添加统计信息文本框
-    stats_text = f'均值: {np.mean(data):.4f}\n标准差: {np.std(data):.4f}\n'
-    stats_text += f'最小值: {np.min(data):.4f}\n最大值: {np.max(data):.4f}'
+
+    stats_text = f'mean: {np.mean(data):.4f}\nstd: {np.std(data):.4f}\n'
+    stats_text += f'min: {np.min(data):.4f}\nmax: {np.max(data):.4f}'
     ax.text(0.98, 0.98, stats_text,
             transform=ax.transAxes,
             verticalalignment='top',
             horizontalalignment='right',
             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5),
             fontsize=10)
-    
+
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.close()
@@ -82,52 +72,50 @@ def plot_distribution_evolution(
     data_type: str,
     save_path: Path
 ):
-    """绘制数据分布随训练步数的演化
-    
+    """Plot how a data distribution evolves over training steps.
+
     Args:
-        data_dict: 训练步数到数据的映射 {step: data}
-        layer_name: 层名称
-        network_name: 网络名称
-        data_type: 数据类型（'weight', 'gradient', 'activation'）
-        save_path: 保存路径
+        data_dict: mapping from training step to data
+        layer_name: layer name
+        network_name: network name
+        data_type: data type ('weight', 'gradient', 'activation')
+        save_path: path to save the figure
     """
     save_path = Path(save_path)
     save_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    # 排序步数
+
     steps = sorted(data_dict.keys())
-    
-    # 计算每个步数的统计量
+
     means = [np.mean(data_dict[s]) for s in steps]
     stds = [np.std(data_dict[s]) for s in steps]
     mins = [np.min(data_dict[s]) for s in steps]
     maxs = [np.max(data_dict[s]) for s in steps]
-    
+
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
-    
-    # 上图：均值和标准差
-    ax1.plot(steps, means, 'b-', label='均值', linewidth=2)
+
+    # Top: mean and std
+    ax1.plot(steps, means, 'b-', label='mean', linewidth=2)
     ax1.fill_between(steps,
                      [m - s for m, s in zip(means, stds)],
                      [m + s for m, s in zip(means, stds)],
-                     alpha=0.3, label='±1标准差')
-    ax1.set_xlabel('训练步数', fontsize=12)
-    ax1.set_ylabel('数值', fontsize=12)
-    ax1.set_title(f'{network_name} - {layer_name} - {data_type} 演化（均值）', 
-                 fontsize=14, fontweight='bold')
+                     alpha=0.3, label='±1 std')
+    ax1.set_xlabel('Training Step', fontsize=12)
+    ax1.set_ylabel('Value', fontsize=12)
+    ax1.set_title(f'{network_name} - {layer_name} - {data_type} Evolution (Mean)',
+                  fontsize=14, fontweight='bold')
     ax1.legend()
     ax1.grid(True, alpha=0.3)
-    
-    # 下图：最小值和最大值
-    ax2.plot(steps, mins, 'g-', label='最小值', linewidth=2)
-    ax2.plot(steps, maxs, 'r-', label='最大值', linewidth=2)
-    ax2.set_xlabel('训练步数', fontsize=12)
-    ax2.set_ylabel('数值', fontsize=12)
-    ax2.set_title(f'{network_name} - {layer_name} - {data_type} 演化（范围）', 
-                 fontsize=14, fontweight='bold')
+
+    # Bottom: min and max
+    ax2.plot(steps, mins, 'g-', label='min', linewidth=2)
+    ax2.plot(steps, maxs, 'r-', label='max', linewidth=2)
+    ax2.set_xlabel('Training Step', fontsize=12)
+    ax2.set_ylabel('Value', fontsize=12)
+    ax2.set_title(f'{network_name} - {layer_name} - {data_type} Evolution (Range)',
+                  fontsize=14, fontweight='bold')
     ax2.legend()
     ax2.grid(True, alpha=0.3)
-    
+
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.close()
@@ -142,46 +130,44 @@ def plot_network_comparison(
     save_path: Path,
     bins: int = 50
 ):
-    """绘制三个网络的数据对比
-    
+    """Plot a comparison across the three networks.
+
     Args:
-        policy_data: Policy网络数据
-        q1_data: Q1网络数据
-        q2_data: Q2网络数据
-        layer_name: 层名称
-        data_type: 数据类型（'weight', 'gradient', 'activation'）
-        save_path: 保存路径
-        bins: 直方图的bin数量
+        policy_data: policy network data
+        q1_data: Q1 network data
+        q2_data: Q2 network data
+        layer_name: layer name
+        data_type: data type ('weight', 'gradient', 'activation')
+        save_path: path to save the figure
+        bins: number of histogram bins
     """
     save_path = Path(save_path)
     save_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-    
-    # 数据和标题
+
     data_list = [policy_data, q1_data, q2_data]
-    titles = ['Policy网络', 'Q1网络', 'Q2网络']
+    titles = ['Policy Network', 'Q1 Network', 'Q2 Network']
     colors = ['blue', 'green', 'red']
-    
+
     for ax, data, title, color in zip(axes, data_list, titles, colors):
         ax.hist(data, bins=bins, alpha=0.7, color=color, edgecolor='black')
-        ax.set_xlabel('数值', fontsize=12)
-        ax.set_ylabel('频数', fontsize=12)
+        ax.set_xlabel('Value', fontsize=12)
+        ax.set_ylabel('Frequency', fontsize=12)
         ax.set_title(f'{title}\n{layer_name}', fontsize=12, fontweight='bold')
         ax.grid(True, alpha=0.3)
-        
-        # 添加统计信息
-        stats_text = f'μ={np.mean(data):.3f}\nσ={np.std(data):.3f}'
+
+        stats_text = f'mean={np.mean(data):.3f}\nstd={np.std(data):.3f}'
         ax.text(0.98, 0.98, stats_text,
                 transform=ax.transAxes,
                 verticalalignment='top',
                 horizontalalignment='right',
                 bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5),
                 fontsize=10)
-    
-    fig.suptitle(f'网络对比 - {layer_name} - {data_type}', 
-                fontsize=16, fontweight='bold', y=1.02)
-    
+
+    fig.suptitle(f'Network Comparison - {layer_name} - {data_type}',
+                 fontsize=16, fontweight='bold', y=1.02)
+
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.close()
@@ -194,51 +180,49 @@ def plot_multi_layer_comparison(
     save_path: Path,
     bins: int = 50
 ):
-    """绘制同一网络多个层的对比
-    
+    """Plot a comparison of multiple layers within one network.
+
     Args:
-        data_dict: 层名称到数据的映射
-        network_name: 网络名称
-        data_type: 数据类型
-        save_path: 保存路径
-        bins: 直方图的bin数量
+        data_dict: mapping from layer name to data
+        network_name: network name
+        data_type: data type
+        save_path: path to save the figure
+        bins: number of histogram bins
     """
     save_path = Path(save_path)
     save_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     n_layers = len(data_dict)
     n_cols = min(3, n_layers)
     n_rows = (n_layers + n_cols - 1) // n_cols
-    
+
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(6*n_cols, 5*n_rows))
     if n_layers == 1:
         axes = np.array([axes])
     axes = axes.flatten()
-    
+
     for idx, (layer_name, data) in enumerate(sorted(data_dict.items())):
         ax = axes[idx]
         ax.hist(data, bins=bins, alpha=0.7, edgecolor='black')
-        ax.set_xlabel('数值', fontsize=11)
-        ax.set_ylabel('频数', fontsize=11)
+        ax.set_xlabel('Value', fontsize=11)
+        ax.set_ylabel('Frequency', fontsize=11)
         ax.set_title(f'{layer_name}', fontsize=12, fontweight='bold')
         ax.grid(True, alpha=0.3)
-        
-        # 添加统计信息
-        stats_text = f'μ={np.mean(data):.3f}\nσ={np.std(data):.3f}'
+
+        stats_text = f'mean={np.mean(data):.3f}\nstd={np.std(data):.3f}'
         ax.text(0.98, 0.98, stats_text,
                 transform=ax.transAxes,
                 verticalalignment='top',
                 horizontalalignment='right',
                 bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5),
                 fontsize=9)
-    
-    # 隐藏多余的子图
+
     for idx in range(n_layers, len(axes)):
         axes[idx].axis('off')
-    
-    fig.suptitle(f'{network_name} - 各层{data_type}分布对比', 
-                fontsize=16, fontweight='bold')
-    
+
+    fig.suptitle(f'{network_name} - {data_type} Distribution by Layer',
+                 fontsize=16, fontweight='bold')
+
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.close()
