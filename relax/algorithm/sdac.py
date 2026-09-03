@@ -47,6 +47,7 @@ class SDAC(Algorithm):
         delay_update: int = 2,
         reward_scale: float = 0.2,
         num_samples: int = 200,
+        data_collector = None,
     ):
         self.agent = agent
         self.gamma = gamma
@@ -55,6 +56,7 @@ class SDAC(Algorithm):
         self.delay_update = delay_update
         self.reward_scale = reward_scale
         self.num_samples = num_samples
+        self.data_collector = data_collector
         self.optim = optax.adam(lr)
         lr_schedule = optax.schedules.linear_schedule(
             init_value=lr,
@@ -252,6 +254,23 @@ class SDAC(Algorithm):
                                         self.agent.get_action, 
                                         self.agent.get_deterministic_action,
                                         stateless_get_value=self.agent.q)
+
+    def update(self, key: jax.Array, data: Experience) -> Metric:
+        """重写update方法以支持数据收集"""
+        self.state, info = self._update(key, self.state, data)
+        
+        # 数据收集（在JIT外部进行）
+        if self.data_collector and self.data_collector.should_collect(int(self.state.step)):
+            # 收集权重
+            self.data_collector.collect_weights(self.state.params.q1, "q1", int(self.state.step))
+            self.data_collector.collect_weights(self.state.params.q2, "q2", int(self.state.step))
+            self.data_collector.collect_weights(self.state.params.policy, "policy", int(self.state.step))
+            
+            # 保存批次
+            self.data_collector.save_batch(int(self.state.step))
+        
+        return {k: float(v) for k, v in info.items() if not k.startswith('hist')}, \
+               {k: v for k, v in info.items() if k.startswith('hist')}
 
     def get_policy_params(self):
         return (self.state.params.policy, self.state.params.log_alpha, self.state.params.q1, self.state.params.q2 )

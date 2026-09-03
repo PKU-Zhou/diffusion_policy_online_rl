@@ -58,6 +58,9 @@ if __name__ == "__main__":
     parser.add_argument("--beta_schedule_type", type=str, default='linear')
     parser.add_argument("--enable_profiling", action='store_true', default=False, help='Enable performance profiling')
     parser.add_argument("--profiling_output", type=str, default=None, help='Path to save profiling results (default: log_path/profiling_results.json)')
+    parser.add_argument("--enable_data_collection", action='store_true', default=False, help='Enable data distribution collection during training')
+    parser.add_argument("--data_collection_interval", type=int, default=1000, help='Interval (in steps) for data collection')
+    parser.add_argument("--data_collection_layers", type=str, default="linear_0,linear_1,linear_2", help='Comma-separated layer names to collect data from')
     args = parser.parse_args()
 
     if args.debug:
@@ -87,6 +90,18 @@ if __name__ == "__main__":
     gelu = partial(jax.nn.gelu, approximate=False)
     
     print(f"Algorithm: {args.alg}")
+    
+    # 创建数据收集器（如果启用）
+    data_collector = None
+    layer_patterns = []
+    if args.enable_data_collection:
+        from zczhou.data_distribution.utils.data_collector import DataCollector
+        
+        # 日志路径会在后面创建，这里先预留
+        # 数据收集器会在算法创建后、trainer创建时被使用
+        layer_patterns = args.data_collection_layers.split(',')
+        print(f"数据收集已启用，采样间隔：{args.data_collection_interval} 步")
+        print(f"收集层：{layer_patterns}")
 
     if args.alg == 'sdac':
         def mish(x: jax.Array):
@@ -96,7 +111,22 @@ if __name__ == "__main__":
                                           num_particles=args.num_particles, 
                                           noise_scale=args.noise_scale,
                                           beta_schedule_scale=args.beta_schedule_scale)
-        algorithm = SDAC(agent, params, lr=args.lr, alpha_lr=args.alpha_lr, delay_alpha_update=args.delay_alpha_update, lr_schedule_end=args.lr_schedule_end)
+        
+        # 为SDAC创建数据收集器
+        if args.enable_data_collection:
+            # 临时目录，实际目录会在exp_dir创建后更新
+            temp_output_dir = Path("temp_data_collection")
+            data_collector = DataCollector(
+                output_dir=temp_output_dir,
+                sample_interval=args.data_collection_interval,
+                layer_patterns=layer_patterns,
+                save_batch_size=10
+            )
+        
+        algorithm = SDAC(agent, params, lr=args.lr, alpha_lr=args.alpha_lr, 
+                        delay_alpha_update=args.delay_alpha_update, 
+                        lr_schedule_end=args.lr_schedule_end,
+                        data_collector=data_collector)
     
     elif args.alg == 'dpmd':
         def mish(x: jax.Array):
@@ -167,6 +197,13 @@ if __name__ == "__main__":
     
     exp_dir = PROJECT_ROOT / "logs" / args.env / (args.alg + '_' + time.strftime("%Y-%m-%d_%H-%M-%S") + f'_s{args.seed}_{args.suffix}')
     
+    # Update data collector output path if enabled
+    if args.enable_data_collection and data_collector is not None:
+        data_output_dir = exp_dir / "data_distribution"
+        data_output_dir.mkdir(parents=True, exist_ok=True)
+        data_collector.output_dir = data_output_dir
+        print(f"数据收集输出目录：{data_output_dir}")
+    
     # Set profiling output path if profiling is enabled
     profiling_output = None
     if args.enable_profiling and args.profiling_output:
@@ -198,6 +235,10 @@ if __name__ == "__main__":
     
     # Run training
     trainer.run(train_key)
+    
+    # Finalize data collection if enabled
+    if args.enable_data_collection and data_collector is not None:
+        data_collector.finalize()
     
     # Export profiling results if enabled
     if args.enable_profiling:
