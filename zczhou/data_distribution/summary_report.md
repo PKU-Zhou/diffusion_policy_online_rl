@@ -10,41 +10,41 @@ This report summarizes distribution statistics of weights (and gradients, if col
 
 #### linear_1_b
 
-- mean: 0.000714
-- std: 0.005433
-- min: -0.008349
-- max: 0.012455
-- median: 0.000682
+- mean: 0.000234
+- std: 0.013115
+- min: -0.031386
+- max: 0.035166
+- median: -0.001923
 
 ![policy linear_1_b weight distribution](weight/policy/linear_1_b_hist.png)
 
 #### linear_1_w
 
-- mean: 0.001834
-- std: 0.159693
-- min: -0.358241
-- max: 0.360036
-- median: -0.003397
+- mean: 0.001545
+- std: 0.161528
+- min: -0.449476
+- max: 0.440757
+- median: -0.006338
 
 ![policy linear_1_w weight distribution](weight/policy/linear_1_w_hist.png)
 
 #### linear_b
 
-- mean: 0.001265
-- std: 0.004200
-- min: -0.008232
-- max: 0.012183
-- median: 0.000931
+- mean: 0.003595
+- std: 0.012137
+- min: -0.024479
+- max: 0.034616
+- median: 0.002509
 
 ![policy linear_b weight distribution](weight/policy/linear_b_hist.png)
 
 #### linear_w
 
-- mean: -0.001975
-- std: 0.220006
-- min: -0.498047
-- max: 0.502897
-- median: -0.006797
+- mean: -0.000582
+- std: 0.221228
+- min: -0.560222
+- max: 0.524496
+- median: -0.005146
 
 ![policy linear_w weight distribution](weight/policy/linear_w_hist.png)
 
@@ -52,41 +52,41 @@ This report summarizes distribution statistics of weights (and gradients, if col
 
 #### linear_1_b
 
-- mean: -0.000200
-- std: 0.003931
-- min: -0.016112
-- max: 0.018345
-- median: -0.000095
+- mean: -0.004651
+- std: 0.015451
+- min: -0.114054
+- max: 0.080009
+- median: -0.002834
 
 ![q1 linear_1_b weight distribution](weight/q1/linear_1_b_hist.png)
 
 #### linear_1_w
 
-- mean: -0.000619
-- std: 0.055257
-- min: -0.157188
-- max: 0.153968
-- median: -0.000640
+- mean: -0.001787
+- std: 0.059350
+- min: -0.382800
+- max: 0.240448
+- median: -0.001522
 
 ![q1 linear_1_w weight distribution](weight/q1/linear_1_w_hist.png)
 
 #### linear_b
 
-- mean: 0.000538
-- std: 0.005969
-- min: -0.023562
-- max: 0.022238
-- median: 0.000358
+- mean: -0.002955
+- std: 0.025789
+- min: -0.146777
+- max: 0.135912
+- median: -0.001546
 
 ![q1 linear_b weight distribution](weight/q1/linear_b_hist.png)
 
 #### linear_w
 
-- mean: -0.004350
-- std: 0.186274
-- min: -0.508394
-- max: 0.489346
-- median: -0.005139
+- mean: -0.004118
+- std: 0.215822
+- min: -1.000926
+- max: 0.973694
+- median: -0.003469
 
 ![q1 linear_w weight distribution](weight/q1/linear_w_hist.png)
 
@@ -94,41 +94,41 @@ This report summarizes distribution statistics of weights (and gradients, if col
 
 #### linear_1_b
 
-- mean: 0.000125
-- std: 0.003649
-- min: -0.019949
-- max: 0.013071
-- median: -0.000038
+- mean: -0.003686
+- std: 0.015681
+- min: -0.100814
+- max: 0.068045
+- median: -0.002025
 
 ![q2 linear_1_b weight distribution](weight/q2/linear_1_b_hist.png)
 
 #### linear_1_w
 
-- mean: -0.000418
-- std: 0.055168
-- min: -0.156741
-- max: 0.159778
-- median: -0.000460
+- mean: -0.001601
+- std: 0.059203
+- min: -0.346359
+- max: 0.287452
+- median: -0.001413
 
 ![q2 linear_1_w weight distribution](weight/q2/linear_1_w_hist.png)
 
 #### linear_b
 
-- mean: 0.000568
-- std: 0.005718
-- min: -0.017765
-- max: 0.022110
-- median: 0.000258
+- mean: -0.000201
+- std: 0.026778
+- min: -0.102973
+- max: 0.198695
+- median: 0.000952
 
 ![q2 linear_b weight distribution](weight/q2/linear_b_hist.png)
 
 #### linear_w
 
-- mean: -0.002086
-- std: 0.187244
-- min: -0.496034
-- max: 0.500514
-- median: -0.004842
+- mean: -0.002180
+- std: 0.217150
+- min: -0.995984
+- max: 1.007630
+- median: -0.004290
 
 ![q2 linear_w weight distribution](weight/q2/linear_w_hist.png)
 
