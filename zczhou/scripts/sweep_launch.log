@@ -1,0 +1,11 @@
+共 7 个实验，可用显卡：0 1 2 3
+
+[GPU 0] sweep_env_Ant-v4
+[GPU 1] sweep_env_Hopper-v4
+[GPU 2] sweep_env_Walker2d-v4
+[GPU 3] sweep_env_Swimmer-v4
+[GPU 1] sweep_env_Reacher-v4
+[GPU 2] sweep_env_InvertedPendulum-v4
+[GPU 3] sweep_env_InvertedDoublePendulum-v4
+
+全部实验结束，日志见 /data/home/zch_zhou28/workspace/work2026/DPRL_V2/diffusion_policy_online_rl/zczhou/logs/sweep/

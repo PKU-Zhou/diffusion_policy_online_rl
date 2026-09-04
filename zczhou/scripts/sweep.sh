@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 # 批量实验脚本：对指定维度做笛卡尔积，每张卡同时只跑一个实验，跑完自动取下一个
 #
+# HalfCheetah-v4
+# Ant-v4
+# Hopper-v4
+# Walker2d-v4
+# Swimmer-v4
+# Reacher-v4
+# InvertedPendulum-v4
+# InvertedDoublePendulum-v4
+
 # 用法：
 #   bash sweep.sh --env HalfCheetah-v4,Ant-v4 --seed 100,200,300
 #   bash sweep.sh --alg sdac,dpmd --seed 100,200 --gpus 0,1,3
