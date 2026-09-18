@@ -56,7 +56,9 @@ def suggest_next_steps(baseline_ret: float, rows: list[dict]) -> str:
                      f"建议加大档位：N={n * 2}、N={n * 4}（延迟 {n * 2 * 50}ms / {n * 4 * 50}ms 仿真时间）")
     elif decay > 0:
         lines.append(f"- N={n} 衰减 {decay * 100:.2f}%，已见明显影响")
-        lines.append(f"- 如需刻画衰减曲线，可加测 N={n + 1}、N={2 * n} 观察趋势")
+        candidates = sorted({n + 1, 2 * n})
+        cand_str = "、".join(f"N={c}" for c in candidates)
+        lines.append(f"- 如需刻画衰减曲线，可加测 {cand_str} 观察趋势")
         lines.append("- 如需更细粒度（<1 个控制周期），需改环境步长或插值，超出当前机制范围")
     else:
         lines.append(f"- N={n} 回报反而上升 {abs(decay) * 100:.2f}%（单 seed 噪声可能），"

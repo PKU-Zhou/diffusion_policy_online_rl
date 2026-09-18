@@ -118,3 +118,17 @@ python zczhou/infer_freq/analyze_delay.py \
 `delay_sim_ms`（延迟对应仿真时间）字段。
 
 `results/report_delay_<ts>.md`：各档延迟的回报、相对 baseline 衰减、下一档建议。
+
+### 实测结果（HalfCheetah-v4，RTX 5090，seed=0，FP32）
+
+| 延迟步数 N | 延迟仿真时间 | ep_ret | 相对 baseline |
+|---|---|---|---|
+| 0 | 0 ms | 11765.71 | baseline |
+| 1 | 50 ms | 618.83 | -94.74% |
+
+结论：该 SDAC 策略对动作延迟极度敏感——仅滞后 1 个控制周期（50 ms 仿真时间），
+回报就衰减约 95%，说明策略高度依赖即时的观测-动作闭环，几乎无延迟容忍度。
+
+实现注意：延迟队列用 `collections.deque` 时**不能设 `maxlen=N`**——预填 N 个零动作后
+队列已满，`append` 会挤掉队首使延迟失效。正确做法是预填 N 个零动作后每步
+`append` + `popleft`，队列长度恒为 N+1，取出恰好是 N 步前的动作。
