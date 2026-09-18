@@ -107,10 +107,12 @@ def rollout_with_delay(env, policy_fn, policy_params, max_steps: int, delay_step
     obs, _ = env.reset()
     act_dim = env.act_dim
     zero_act = np.zeros(act_dim, dtype=np.float32)
-    # 队列长度恒为 delay_steps，预填零动作；N=0 时不用队列
+    # 队列预填 delay_steps 个零动作。不用 maxlen（append 会挤掉队首使延迟失效），
+    # 改为每步 append 新动作后 popleft 取队首，队列长度恒为 delay_steps+1，
+    # 取出的恰好是 delay_steps 步之前的动作。
     queue: deque | None = None
     if delay_steps > 0:
-        queue = deque([zero_act.copy() for _ in range(delay_steps)], maxlen=delay_steps)
+        queue = deque(zero_act.copy() for _ in range(delay_steps))
 
     ep_len = 0
     ep_ret = 0.0
@@ -127,7 +129,7 @@ def rollout_with_delay(env, policy_fn, policy_params, max_steps: int, delay_step
 
         if queue is not None:
             queue.append(act_new)
-            act_exec = queue[0]           # 队首：delay_steps 步前的动作（前 N 步为零动作）
+            act_exec = queue.popleft()    # 队首：delay_steps 步前的动作（前 N 步为零动作）
         else:
             act_exec = act_new            # N=0 退化为 baseline
 

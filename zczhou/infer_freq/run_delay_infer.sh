@@ -9,6 +9,8 @@
 #   GPU=1 bash run_delay_infer.sh --delay_steps 1    # 换显卡
 #
 # 覆盖参数直接追加在命令行末尾即可，会透传给 delay_infer.py。
+# 结果 json 文件名由 delay_infer.py 按实际 --delay_steps 值自动生成
+# （delay_N<N>_<timestamp>.json），避免命令行覆盖 DELAY 后文件名不同步。
 
 set -o pipefail
 
@@ -28,11 +30,11 @@ DELAY=${DELAY:-0}
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 RESULTS_DIR=${RESULTS_DIR:-$SCRIPT_DIR/results}
 LOG_FILE=${LOG_FILE:-$RESULTS_DIR/delay_infer_$TIMESTAMP.log}
-OUT_JSON=${OUT_JSON:-$RESULTS_DIR/delay_N${DELAY}_$TIMESTAMP.json}
 
 QUANT=${QUANT:-0}
 
-INFER_ARGS=(--out "$OUT_JSON" --delay_steps "$DELAY")
+# --delay_steps 取 DELAY 环境变量；命令行末尾再追加 --delay_steps 可覆盖
+INFER_ARGS=(--delay_steps "$DELAY")
 if [ -n "${LOG_DIR:-}" ]; then
     INFER_ARGS+=(--log_dir "$LOG_DIR")
 fi
@@ -76,4 +78,4 @@ else
 fi
 
 echo "log    : $LOG_FILE"
-echo "result : $OUT_JSON"
+echo "result : 由上方 saved 行给出（delay_N<实际延迟步数>_<timestamp>.json）"
